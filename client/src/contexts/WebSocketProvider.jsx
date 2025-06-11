@@ -35,10 +35,11 @@ export const WebSocketProvider = ({ children }) => {
         revertOptimisticMessage,
     } = useChatStore.getState();
 
-    // --- BIG CHANGE #1: The connection logic is now wrapped in this function! ---
-    // It will not run until a component (like ChatWidget) calls it.
+    // --- THIS IS THE BIG CHANGE! ---
+    // The connection logic is now wrapped in this function.
+    // It will not run until something calls it.
     const connectSocket = useCallback(() => {
-        // If we already have a socket connection, don't do anything.
+        // If we already have a connection, don't do anything.
         if (socketRef.current?.connected) {
             return;
         }
@@ -84,20 +85,30 @@ export const WebSocketProvider = ({ children }) => {
         };
     }, [user]);
 
+    // --- The 'useSendMessageMutation' hook remains the same ---
     const useSendMessageMutation = (event) => {
         return useMutation({
             mutationFn: (variables) => {
                 return new Promise((resolve, reject) => {
                     if (!socketRef.current?.connected) {
-                        return reject(new Error("Socket not connected."));
+                        // We connect here if needed before sending a message!
+                        connectSocket();
+                        // This might take a moment, so we should add a small delay/retry
+                        setTimeout(() => {
+                           if (!socketRef.current?.connected) {
+                               return reject(new Error("Socket still not connected."));
+                           }
+                           socketRef.current.emit(event, { ...variables }, (response) => {
+                                if (response && response.success) resolve(response.data);
+                                else reject(new Error(response?.error || `Failed to send message.`));
+                           });
+                        }, 1000); // 1-second delay to allow connection
+                    } else {
+                        socketRef.current.emit(event, { ...variables }, (response) => {
+                            if (response && response.success) resolve(response.data);
+                            else reject(new Error(response?.error || `Failed to send message.`));
+                        });
                     }
-                    socketRef.current.emit(event, { ...variables }, (response) => {
-                        if (response && response.success) {
-                            resolve(response.data);
-                        } else {
-                            reject(new Error(response?.error || `Failed to send message.`));
-                        }
-                    });
                 });
             },
             onMutate: async (variables) => {
@@ -107,7 +118,9 @@ export const WebSocketProvider = ({ children }) => {
             },
             onError: (err, variables, context) => {
                 toast.error(err.message || "Failed to send message.");
-                revertOptimisticMessage(context.optimisticId, variables.optimisticMessage.session_id);
+                if (context?.optimisticId) {
+                   revertOptimisticMessage(context.optimisticId, variables.optimisticMessage.session_id);
+                }
             },
             onSettled: (data, error, variables) => {
                 queryClient.invalidateQueries({ queryKey: ['messages', variables.optimisticMessage.session_id] });
@@ -119,36 +132,22 @@ export const WebSocketProvider = ({ children }) => {
     const sendCustomerMessageMutation = useSendMessageMutation('customer_chat_message');
 
     const actions = useMemo(() => ({
-        // --- BIG CHANGE #2: We now provide the connectSocket function to other components! ---
-        connectSocket,
+        // We no longer need to expose connectSocket directly, as mutations handle it
         sendAdminReply: ({ text, sessionId }) => {
-            const optimisticMessage = {
-                message_text: text,
-                sender_type: 'admin',
-                admin_user_id: user?.id,
-                session_id: sessionId,
-            };
+            const optimisticMessage = { message_text: text, sender_type: 'admin', admin_user_id: user?.id, session_id: sessionId };
             sendAdminReplyMutation.mutate({ text, sessionId, optimisticMessage });
         },
         sendCustomerMessage: ({ text, sessionId }) => {
-            const optimisticMessage = {
-                message_text: text,
-                sender_type: 'guest',
-                session_id: sessionId,
-            };
+            const optimisticMessage = { message_text: text, sender_type: 'guest', session_id: sessionId };
             sendCustomerMessageMutation.mutate({ text, sessionId, optimisticMessage });
         },
         emitStartTyping: (sessionId) => {
-            if (socketRef.current?.connected) {
-                socketRef.current.emit('start_typing', { sessionId });
-            }
+            if (socketRef.current?.connected) socketRef.current.emit('start_typing', { sessionId });
         },
         emitStopTyping: (sessionId) => {
-            if (socketRef.current?.connected) {
-                socketRef.current.emit('stop_typing', { sessionId });
-            }
+            if (socketRef.current?.connected) socketRef.current.emit('stop_typing', { sessionId });
         },
-    }), [user, connectSocket, sendAdminReplyMutation, sendCustomerMessageMutation]);
+    }), [user, sendAdminReplyMutation, sendCustomerMessageMutation]);
 
     return (
         <WebSocketContext.Provider value={actions}>
