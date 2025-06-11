@@ -5,7 +5,16 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: '0.0.0.0', // This makes it accessible from outside the container
-    port: process.env.PORT || 10000 // Uses the port Render provides
+    host: '0.0.0.0',
+    port: process.env.PORT || 10000,
+    // --- THIS IS THE FIX! ---
+    // We are telling Vite that it's okay to be accessed
+    // from our new Render debug URL.
+    hmr: {
+      host: 'realm-debug.onrender.com'
+    },
+    watch: {
+      usePolling: true
+    }
   }
 })
