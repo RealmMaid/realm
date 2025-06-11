@@ -7,7 +7,7 @@ import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import { CartProvider } from './contexts/CartContext.jsx';
-import { WebSocketProvider } from './contexts/WebSocketProvider.jsx'; // 1. Commented out the import
+import { WebSocketProvider } from './contexts/WebSocketProvider.jsx'; // This is ACTIVE
 
 const queryClient = new QueryClient();
 
@@ -16,11 +16,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
+          <WebSocketProvider> {/* This is ACTIVE */}
             <CartProvider>
-              <WebSocketProvider>
               <App />
-              </WebSocketProvider>
             </CartProvider>
+          </WebSocketProvider> {/* This is ACTIVE */}
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
