@@ -19,7 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <CartProvider>
               <WebSocketProvider>
               <App />
-              <WebSocketProvider>
+              </WebSocketProvider>
             </CartProvider>
         </AuthProvider>
       </BrowserRouter>
