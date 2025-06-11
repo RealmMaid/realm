@@ -7,7 +7,7 @@ import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import { CartProvider } from './contexts/CartContext.jsx';
-// import { WebSocketProvider } from './contexts/WebSocketProvider.jsx'; // 1. Commented out the import
+import { WebSocketProvider } from './contexts/WebSocketProvider.jsx'; // 1. Commented out the import
 
 const queryClient = new QueryClient();
 
@@ -17,8 +17,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <AuthProvider>
             <CartProvider>
-              {/* 2. The WebSocketProvider wrapper is removed */}
+              <WebSocketProvider>
               <App />
+              <WebSocketProvider>
             </CartProvider>
         </AuthProvider>
       </BrowserRouter>
