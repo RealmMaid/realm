@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useCart } from '../contexts/CartContext.jsx';
-import { useChatStore } from '../hooks/useChatStore.js'; // 1. Import the chat store!
-import ChatWidget from './ChatWidget.jsx';
+// import { useChatStore } from '../hooks/useChatStore.js'; // 1. Commented out chat store import
+// import ChatWidget from './ChatWidget.jsx'; // 2. Commented out chat widget import
 
 // Component to render a dynamic, animated starry background.
 const StarryBackground = () => {
@@ -140,10 +140,9 @@ function MainLayout() {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const { isAuthLoading } = useAuth();
     
-    // 2. Get the connection status from your chat store!
-    const { isConnected } = useChatStore(state => ({
-        isConnected: state.isConnected,
-    }));
+    // const { isConnected } = useChatStore(state => ({
+    //     isConnected: state.isConnected,
+    // }));
 
     return (
         <div className="site-container">
@@ -156,9 +155,8 @@ function MainLayout() {
             <Footer />
             <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
             
-            {/* 3. THIS IS THE FINAL FIX! */}
-            {/* Only render the ChatWidget if auth is done AND the websocket is connected! */}
-            {!isAuthLoading && isConnected && <ChatWidget />}
+            {/* The ChatWidget is now completely removed for our test. */}
+            {/* {!isAuthLoading && isConnected && <ChatWidget />} */}
         </div>
     );
 }
