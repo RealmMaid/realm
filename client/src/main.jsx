@@ -1,32 +1,25 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './hooks/useAuth.jsx';
-import { BrowserRouter } from 'react-router-dom';
 import { CartProvider } from './contexts/CartContext.jsx';
-import { WebSocketProvider } from './contexts/WebSocketProvider.jsx';
+// import { WebSocketProvider } from './contexts/WebSocketProvider.jsx'; // 1. Commented out the import
 
-// 1. Add the new imports from React Query
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-// 2. Create the client instance
 const queryClient = new QueryClient();
 
-// This is the entry point of your application, wrapping the App
-// component with all the necessary providers for routing, authentication,
-// shopping cart state, and WebSocket connections.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* 3. Wrap your existing providers with the QueryClientProvider */}
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <WebSocketProvider>
             <CartProvider>
+              {/* 2. The WebSocketProvider wrapper is removed */}
               <App />
             </CartProvider>
-          </WebSocketProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
