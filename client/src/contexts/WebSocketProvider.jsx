@@ -30,7 +30,6 @@ export const WebSocketProvider = ({ children }) => {
     const { user } = useAuth();
 
     // Get actions directly from the Zustand store.
-    // We use .getState() because these functions are stable and don't need to trigger re-renders here.
     const {
         setConnected,
         initializeCustomerSession,
@@ -44,20 +43,25 @@ export const WebSocketProvider = ({ children }) => {
     // Effect for managing the socket connection and its event listeners
     useEffect(() => {
         const guestIdentifier = user ? null : getOrCreateGuestIdentifier();
-        const socket = io((import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace('/api', ''), {
+        
+        // --- THIS IS THE FIX! ---
+        // 1. We get the URL cleanly from the environment variables you set on Render.
+        const socketURL = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:3000';
+
+        // 2. We create the socket with the URL and a single, clean options object.
+        const socket = io(socketURL, {
             withCredentials: true,
             auth: { guestIdentifier }
         });
+        
         socketRef.current = socket;
 
         // --- Socket Event Handlers ---
-        // Each handler now calls an action from our Zustand store to update global state.
         socket.on('connect', () => setConnected(true));
         socket.on('disconnect', () => setConnected(false));
         socket.on('customer_session_initialized', (data) => initializeCustomerSession(data));
         socket.on('new_customer_message', (payload) => addMessage(payload.savedMessage));
         socket.on('new_admin_message', (payload) => {
-            // The server echoes back the optimisticId, allowing us to find and replace the correct message.
             const messageWithId = { ...payload.savedMessage, optimisticId: payload.optimisticId };
             addMessage(messageWithId);
         });
@@ -74,7 +78,9 @@ export const WebSocketProvider = ({ children }) => {
                 socketRef.current.disconnect();
             }
         };
-    }, [user, queryClient, setConnected, initializeCustomerSession, addMessage, setPeerTyping, clearPeerTyping]);
+    // 3. The dependency array is now much cleaner!
+    // This effect will only re-run if the user logs in or out.
+    }, [user, queryClient, setConnected, initializeCustomerSession, addMessage, setPeerTyping, clearPeerTyping, revertOptimisticMessage]); // revertOptimisticMessage was also missing here!
 
 
     // --- React Query Mutation for sending messages ---
@@ -85,8 +91,6 @@ export const WebSocketProvider = ({ children }) => {
                     if (!socketRef.current?.connected) {
                         return reject(new Error("Socket not connected."));
                     }
-                    // We now include the optimisticId in the payload.
-                    // The backend should receive this and include it in the broadcasted `new_admin_message` event.
                     socketRef.current.emit(event, { ...variables }, (response) => {
                         if (response && response.success) {
                             resolve(response.data);
@@ -97,19 +101,15 @@ export const WebSocketProvider = ({ children }) => {
                 });
             },
             onMutate: async (variables) => {
-                // Use the Zustand action to add an optimistic message and get its temporary ID.
                 const optimisticId = addOptimisticMessage(variables.optimisticMessage);
-                // Pass the ID to the mutation function and error handler.
                 variables.optimisticId = optimisticId;
                 return { optimisticId };
             },
             onError: (err, variables, context) => {
                 toast.error(err.message || "Failed to send message.");
-                // If the mutation fails, use the ID to remove the optimistic message from the store.
                 revertOptimisticMessage(context.optimisticId, variables.optimisticMessage.session_id);
             },
             onSettled: (data, error, variables) => {
-                // Invalidate queries to ensure eventual consistency with the database.
                 queryClient.invalidateQueries({ queryKey: ['messages', variables.optimisticMessage.session_id] });
             }
         });
@@ -119,7 +119,6 @@ export const WebSocketProvider = ({ children }) => {
     const sendCustomerMessageMutation = useSendMessageMutation('customer_chat_message');
 
     // --- Exposed Actions via Context ---
-    // The context now only provides functions. Components will get state from the Zustand store.
     const actions = useMemo(() => ({
         sendAdminReply: ({ text, sessionId }) => {
             const optimisticMessage = {
