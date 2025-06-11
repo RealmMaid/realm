@@ -197,23 +197,19 @@ const ChatWidget = () => {
     const [newMessage, setNewMessage] = useState('');
     const { user: currentUser } = useAuth();
     
-    // The widget only needs the actions now. The connection is handled by the provider.
+    // Get the stable actions object from the context provider.
     const { sendCustomerMessage, emitStartTyping, emitStopTyping } = useWebSocketActions();
     
-    // Get the state directly from our Zustand store
-    const { isConnected, customerChat, typingPeers } = useChatStore(state => ({
-        isConnected: state.isConnected,
-        customerChat: state.customerChat,
-        typingPeers: state.typingPeers,
-    }));
+    // Select each piece of state individually to ensure stability and prevent loops.
+    const isConnected = useChatStore(state => state.isConnected);
+    const customerChat = useChatStore(state => state.customerChat);
+    const typingPeers = useChatStore(state => state.typingPeers);
 
     const { sessionId, messages } = customerChat;
     
     const [isResumedSession, setIsResumedSession] = useState(false);
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
-
-    // This component no longer needs to manage the connection, so the related useEffect is removed.
 
     useEffect(() => {
         if (messages?.length > 0 && !isResumedSession) {
@@ -245,9 +241,7 @@ const ChatWidget = () => {
 
     const handleSend = (e) => {
         e.preventDefault();
-        // The `sendCustomerMessage` action will now handle connecting if needed!
         if (newMessage.trim()) {
-            // Note: We don't need to check for isConnected here anymore, the provider handles it.
             if (sessionId) emitStopTyping(sessionId);
             clearTimeout(typingTimeoutRef.current);
             typingTimeoutRef.current = null;
@@ -296,7 +290,7 @@ const ChatWidget = () => {
                          if (!msg || !msg.id) return null;
                          const isAdminMessage = msg.sender_type === 'admin';
                          let isMyMessage = !isAdminMessage;
-                         let senderName = isMyMessage ? 'You' : 'Admin';
+                         let senderName = isMyMessage ? 'You' : (currentUser?.isAdmin ? 'Admin' : 'Support');
                          const messageStatus = isMyMessage ? getMessageStatus(msg) : null;
  
                          return (
