@@ -140,10 +140,8 @@ function MainLayout() {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const { isAuthLoading } = useAuth();
     
-    // We need to get the isConnected state from our chat store to display it
-    const { isConnected } = useChatStore(state => ({
-        isConnected: state.isConnected,
-    }));
+    // Select the primitive state value directly to prevent unnecessary re-renders.
+    const isConnected = useChatStore(state => state.isConnected);
 
     return (
         <div className="site-container">
@@ -153,7 +151,7 @@ function MainLayout() {
             <main>
                 <Outlet />
 
-                {/* --- Temporary Debug Panel Added Here! --- */}
+                {/* --- Temporary Debug Panel (Optional) --- */}
                 <div style={{
                     position: 'fixed',
                     bottom: '10px',
@@ -175,7 +173,8 @@ function MainLayout() {
             <Footer />
             <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
             
-            {/* We keep the ChatWidget removed for this test */}
+            {/* The ChatWidget is now managed within its own file */}
+            <ChatWidget />
         </div>
     );
 }
