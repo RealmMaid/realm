@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.jsx';
 
 const ChatWidgetStyles = () => (
     <style>{`
+        /* All your beautiful CSS styles remain unchanged */
         .chat-resume-message {
             text-align: center;
             padding: 1rem 0;
@@ -195,16 +196,15 @@ const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const { user: currentUser } = useAuth();
-
-    // --- FIX #1: We now get our new `connectSocket` function from the provider! ---
-    const { connectSocket, sendCustomerMessage, emitStartTyping, emitStopTyping } = useWebSocketActions();
     
-    // This state is still perfectly fine to get from Zustand
-    const { isConnected, customerChat, typingPeers, markMessageAsRead } = useChatStore(state => ({
+    // The widget only needs the actions now. The connection is handled by the provider.
+    const { sendCustomerMessage, emitStartTyping, emitStopTyping } = useWebSocketActions();
+    
+    // Get the state directly from our Zustand store
+    const { isConnected, customerChat, typingPeers } = useChatStore(state => ({
         isConnected: state.isConnected,
         customerChat: state.customerChat,
         typingPeers: state.typingPeers,
-        markMessageAsRead: state.markMessageAsRead,
     }));
 
     const { sessionId, messages } = customerChat;
@@ -212,37 +212,11 @@ const ChatWidget = () => {
     const [isResumedSession, setIsResumedSession] = useState(false);
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
-    
-    // The old useReadReceipts hook logic is fine, we can keep it as is.
-    const observer = useRef();
-    const lastAdminMessageRef = useCallback(node => {
-        if (observer.current) observer.current.disconnect();
-        
-        observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting) {
-                const messageId = entries[0].target.dataset.messageId;
-                const message = messages.find(m => String(m.id) === String(messageId));
-                if (message && message.sender_type === 'admin' && !message.read_at && sessionId) {
-                    // This part needs to be updated if you centralize actions
-                    // For now, assuming you'll pass the emit function via context
-                }
-            }
-        });
-        
-        if (node) observer.current.observe(node);
-    }, [messages, sessionId]);
 
-    // --- FIX #2: This new useEffect connects the socket ON DEMAND! ---
-    useEffect(() => {
-        // If the chat panel is opened by the user and we are not yet connected...
-        if (isOpen && !isConnected) {
-            // ...then we call our function to start the connection!
-            connectSocket();
-        }
-    }, [isOpen, isConnected, connectSocket]); // This effect runs when the user opens the panel.
+    // This component no longer needs to manage the connection, so the related useEffect is removed.
 
     useEffect(() => {
-        if (messages && messages.length > 0 && !isResumedSession) {
+        if (messages?.length > 0 && !isResumedSession) {
             setIsResumedSession(true);
         }
     }, [messages, isResumedSession]);
@@ -271,10 +245,13 @@ const ChatWidget = () => {
 
     const handleSend = (e) => {
         e.preventDefault();
-        if (newMessage.trim() && isConnected && sessionId) {
-            emitStopTyping(sessionId);
+        // The `sendCustomerMessage` action will now handle connecting if needed!
+        if (newMessage.trim()) {
+            // Note: We don't need to check for isConnected here anymore, the provider handles it.
+            if (sessionId) emitStopTyping(sessionId);
             clearTimeout(typingTimeoutRef.current);
             typingTimeoutRef.current = null;
+            
             sendCustomerMessage({ text: newMessage.trim(), sessionId });
             setNewMessage('');
         }
@@ -284,9 +261,8 @@ const ChatWidget = () => {
         if (String(msg.id).startsWith('local-')) return 'sending';
         if (msg.read_at) return 'read';
         return 'sent';
-    }
+    };
 
-    const isChatReady = isConnected;
     const peerIsTyping = sessionId && typingPeers[sessionId];
 
     return (
@@ -317,32 +293,29 @@ const ChatWidget = () => {
                     )}
 
                     {messages.map((msg, index) => {
-                        if (!msg || !msg.id) return null;
-                        const isAdminMessage = msg.sender_type === 'admin';
-                        let isMyMessage = !isAdminMessage;
-                        let senderName = isMyMessage ? 'You' : 'Admin';
-                        const messageStatus = isMyMessage ? getMessageStatus(msg) : null;
-
-                        const lastAdminMessageIndex = messages.findLastIndex(m => m.sender_type === 'admin');
-
-                        return (
-                            <div 
-                                ref={index === lastAdminMessageIndex ? lastAdminMessageRef : null} 
-                                data-message-id={msg.id} 
-                                key={msg.id} 
-                                className={`chat-message-item-wrapper ${isMyMessage ? 'user-message' : 'admin-message'}`}
-                                style={{ opacity: messageStatus === 'sending' ? 0.7 : 1 }}
-                            >
-                                <span className="msg-sender-name">{senderName}</span>
-                                <div className={`chat-message ${isMyMessage ? 'user' : 'admin'}`}>
-                                    {msg.message_text}
-                                    <span className="msg-timestamp">
-                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        {isMyMessage && <span className={`read-receipt ${messageStatus}`}>✓✓</span>}
-                                    </span>
-                                </div>
-                            </div>
-                        );
+                         if (!msg || !msg.id) return null;
+                         const isAdminMessage = msg.sender_type === 'admin';
+                         let isMyMessage = !isAdminMessage;
+                         let senderName = isMyMessage ? 'You' : 'Admin';
+                         const messageStatus = isMyMessage ? getMessageStatus(msg) : null;
+ 
+                         return (
+                             <div 
+                                 data-message-id={msg.id} 
+                                 key={msg.id} 
+                                 className={`chat-message-item-wrapper ${isMyMessage ? 'user-message' : 'admin-message'}`}
+                                 style={{ opacity: messageStatus === 'sending' ? 0.7 : 1 }}
+                             >
+                                 <span className="msg-sender-name">{senderName}</span>
+                                 <div className={`chat-message ${isMyMessage ? 'user' : 'admin'}`}>
+                                     {msg.message_text}
+                                     <span className="msg-timestamp">
+                                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                         {isMyMessage && <span className={`read-receipt ${messageStatus}`}>✓✓</span>}
+                                     </span>
+                                 </div>
+                             </div>
+                         );
                     })}
                     <div ref={messagesEndRef} />
                 </div>
@@ -351,8 +324,8 @@ const ChatWidget = () => {
                 </div>
                 <div className="chat-input-area">
                     <form onSubmit={handleSend}>
-                        <input type="text" className="selectable" placeholder={isChatReady ? "Type a message..." : "Please wait..."} value={newMessage} onChange={handleTyping} disabled={!isChatReady} autoFocus />
-                        <button type="submit" className="btn btn-primary" disabled={!isChatReady || !newMessage.trim()}>Send</button>
+                        <input type="text" className="selectable" placeholder="Type a message..." value={newMessage} onChange={handleTyping} autoFocus />
+                        <button type="submit" className="btn btn-primary" disabled={!newMessage.trim()}>Send</button>
                     </form>
                 </div>
             </div>
