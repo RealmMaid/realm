@@ -1,0 +1,19 @@
+File tree for: C:\Users\admin\projects\realmmaid-v2\realmmaid-final
+
+├── realmmaid-final/
+│   ├── src
+│   ├── file_tree.txt
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   └── vite.config.js
+│   ├── src/
+│   │   ├── components
+│   │   ├── pages
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   │   ├── components/
+│   │   │   └── MainLayout.jsx
+│   │   ├── pages/
+│   │   │   └── HomePage.jsx
