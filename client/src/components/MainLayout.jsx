@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useCart } from '../contexts/CartContext.jsx';
-import { useWebSocketActions } from '../contexts/WebSocketProvider.jsx'; // Make sure this is imported
+import { useWebSocketActions } from '../contexts/WebSocketProvider.jsx';
 import ChatWidget from './ChatWidget.jsx';
 
 // --- (Your StarryBackground, FaceliftStyles, Header, ShoppingCart, and Footer components are all perfect and stay here) ---
@@ -79,19 +79,16 @@ const Footer = () => ( <footer className="site-footer"> <p>© 2025 Realm Maid. A
 function MainLayout() {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const { isAuthLoading } = useAuth();
-    // We still use the "on-demand" connect function from our provider
     const { connectSocket } = useWebSocketActions();
 
-    // This is the new, stable logic!
     useEffect(() => {
-        // When the authentication check is finished...
-        if (!isAuthLoading) {
-            // ...THEN we try to connect the websocket.
-            // This prevents the race condition with the server cold start.
-            console.log("Auth is loaded, attempting to connect socket!");
+        // --- THIS IS THE FINAL FIX! ---
+        // We add a simple check to make sure connectSocket is actually a function before we call it.
+        if (!isAuthLoading && typeof connectSocket === 'function') {
+            console.log("Auth is loaded AND connectSocket is a function. Attempting to connect.");
             connectSocket();
         }
-    }, [isAuthLoading, connectSocket]); // This effect runs only when the auth state changes.
+    }, [isAuthLoading, connectSocket]);
 
     return (
         <div className="site-container">
@@ -104,8 +101,6 @@ function MainLayout() {
             <Footer />
             <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
             
-            {/* Now, we only need to wait for auth to finish before showing the widget. */}
-            {/* The widget itself and its provider will handle the connection state internally. */}
             {!isAuthLoading && <ChatWidget />}
         </div>
     );
