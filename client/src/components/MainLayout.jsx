@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useCart } from '../contexts/CartContext.jsx';
-// import { useChatStore } from '../hooks/useChatStore.js'; // 1. Commented out chat store import
-// import ChatWidget from './ChatWidget.jsx'; // 2. Commented out chat widget import
+// --- FIX: Uncommented the necessary imports for the chat! ---
+import { useChatStore } from '../hooks/useChatStore.js';
+import ChatWidget from './ChatWidget.jsx';
 
 // Component to render a dynamic, animated starry background.
 const StarryBackground = () => {
@@ -140,9 +141,10 @@ function MainLayout() {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const { isAuthLoading } = useAuth();
     
-    // const { isConnected } = useChatStore(state => ({
-    //     isConnected: state.isConnected,
-    // }));
+    // --- FIX: Uncommented the hook to get the connection status! ---
+    const { isConnected } = useChatStore(state => ({
+        isConnected: state.isConnected,
+    }));
 
     return (
         <div className="site-container">
@@ -155,8 +157,8 @@ function MainLayout() {
             <Footer />
             <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
             
-            {/* The ChatWidget is now completely removed for our test. */}
-            {/* {!isAuthLoading && isConnected && <ChatWidget />} */}
+            {/* --- FIX: Removed the extra/broken lines and kept the one, correct conditional render! --- */}
+            {!isAuthLoading && isConnected && <ChatWidget />}
         </div>
     );
 }
