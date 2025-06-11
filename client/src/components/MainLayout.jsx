@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useCart } from '../contexts/CartContext.jsx';
+import { useChatStore } from '../hooks/useChatStore.js'; // 1. Import the chat store!
 import ChatWidget from './ChatWidget.jsx';
 
 // Component to render a dynamic, animated starry background.
@@ -137,8 +138,12 @@ const Footer = () => ( <footer className="site-footer"> <p>© 2025 Realm Maid. A
 
 function MainLayout() {
     const [isCartOpen, setIsCartOpen] = useState(false);
-    // --- FIX: Get the authentication loading state from the useAuth hook ---
     const { isAuthLoading } = useAuth();
+    
+    // 2. Get the connection status from your chat store!
+    const { isConnected } = useChatStore(state => ({
+        isConnected: state.isConnected,
+    }));
 
     return (
         <div className="site-container">
@@ -151,9 +156,9 @@ function MainLayout() {
             <Footer />
             <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
             
-            {/* --- FIX: Conditionally render the ChatWidget --- */}
-            {/* This ensures the WebSocket connection is only attempted AFTER the initial authentication check is complete. */}
-            {!isAuthLoading && <ChatWidget />}
+            {/* 3. THIS IS THE FINAL FIX! */}
+            {/* Only render the ChatWidget if auth is done AND the websocket is connected! */}
+            {!isAuthLoading && isConnected && <ChatWidget />}
         </div>
     );
 }
