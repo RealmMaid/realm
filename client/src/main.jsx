@@ -7,22 +7,35 @@ import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import { CartProvider } from './contexts/CartContext.jsx';
-import { WebSocketProvider } from './contexts/WebSocketProvider.jsx'; // This is ACTIVE
+import { WebSocketProvider } from './contexts/WebSocketProvider.jsx';
 
-const queryClient = new QueryClient();
+// We put our entire app rendering logic inside this function
+const renderApp = () => {
+    const queryClient = new QueryClient();
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <WebSocketProvider> {/* This is ACTIVE */}
-            <CartProvider>
-              <App />
-            </CartProvider>
-          </WebSocketProvider> {/* This is ACTIVE */}
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>,
-);
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AuthProvider>
+              <WebSocketProvider>
+                <CartProvider>
+                  <App />
+                </CartProvider>
+              </WebSocketProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </React.StrictMode>
+    );
+};
+
+// --- THIS IS THE SAFETY NET ---
+// It checks if the page is still loading.
+if (document.readyState === 'loading') {
+    // If it is, it waits for the 'DOMContentLoaded' event before running our app.
+    document.addEventListener('DOMContentLoaded', renderApp);
+} else {
+    // If the document is already ready, it runs our app immediately.
+    renderApp();
+}
