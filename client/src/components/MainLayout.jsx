@@ -2,40 +2,38 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useCart } from '../contexts/CartContext.jsx';
-import { useWebSocketActions } from '../contexts/WebSocketProvider.jsx';
+import { useChatStore } from '../hooks/useChatStore.js';
 import ChatWidget from './ChatWidget.jsx';
 
-// --- (Your StarryBackground, FaceliftStyles, Header, ShoppingCart, and Footer components are all perfect and stay here) ---
 // Component to render a dynamic, animated starry background.
 const StarryBackground = () => {
-const containerRef = useRef(null);
-useEffect(() => {
-const colors = ['#FFD700', '#FF69B4', '#00E6CC', '#ADFF2F', '#EE82EE'];
-const createStar = () => {
-if (!containerRef.current) return;
-const star = document.createElement('div');
-star.className = 'star';
-const size = Math.random() * 3 + 1;
-star.style.width = `${size}px`;
-star.style.height = `${size}px`;
-star.style.left = `${Math.random() * 100}%`;
-star.style.top = `${Math.random() * 100}%`;
-star.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-const duration = Math.random() * 2 + 3;
-star.style.animationDuration = `${duration}s`;
-star.addEventListener('animationend', () => star.remove());
-containerRef.current.appendChild(star);
-};
-const intervalId = setInterval(createStar, 200);
-return () => clearInterval(intervalId);
-}, []);
-return <div ref={containerRef} id="stars-container-colorful"></div>;
+    const containerRef = useRef(null);
+    useEffect(() => {
+        const colors = ['#FFD700', '#FF69B4', '#00E6CC', '#ADFF2F', '#EE82EE'];
+        const createStar = () => {
+            if (!containerRef.current) return;
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 3 + 1;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.top = `${Math.random() * 100}%`;
+            star.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const duration = Math.random() * 2 + 3;
+            star.style.animationDuration = `${duration}s`;
+            star.addEventListener('animationend', () => star.remove());
+            containerRef.current.appendChild(star);
+        };
+        const intervalId = setInterval(createStar, 200);
+        return () => clearInterval(intervalId);
+    }, []);
+    return <div ref={containerRef} id="stars-container-colorful"></div>;
 };
 
 // Component to inject the primary CSS styles for the main layout.
 const FaceliftStyles = () => (
-<style>{`
-        /* ... all your beautiful facelift styles ... */
+    <style>{`
         .site-container { display: flex; flex-direction: column; min-height: 100vh; }
         main { flex-grow: 1; }
         #stars-container-colorful { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; background: #1a0922; }
@@ -95,97 +93,91 @@ const FaceliftStyles = () => (
         .total-row { font-size: 1.2rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #4a1566; }
 
         .site-footer { text-align: center; padding: 2rem; margin-top: 2rem; color: var(--text-secondary, #a9a3b1); font-size: 0.9rem; background-color: transparent; border-top: 1px solid; border-image-source: linear-gradient(90deg, transparent, var(--accent-lavender, #adff2f), transparent); border-image-slice: 1; }
-   `}</style>
+    `}</style>
 );
 
 const Header = ({ onCartClick }) => {
-const [isNavActive, setIsNavActive] = useState(false);
-const { isAuthenticated, user, logout } = useAuth();
-const { cartItemCount } = useCart();
-return (
-<header className="main-header index-header">
-<Link to="/" className="logo logo-glow">Realm Maid 🎀</Link>
-<button id="menuToggleBtn" className="menu-toggle-btn" aria-label="Toggle Menu" onClick={() => setIsNavActive(!isNavActive)}>
-<span></span><span></span><span></span>
-</button>
-<nav id="mainNav" className={`main-nav ${isNavActive ? 'active' : ''}`}>
-<div id="authButtonsContainer" className="auth-buttons-container">
-{isAuthenticated ? (<> <Link to={user.isAdmin ? "/admin" : "/dashboard"} className="btn">My Account</Link> <button onClick={logout} className="btn btn-outline">Logout</button> </>) : (<> <Link to="/login" className="btn">Log In</Link> <Link to="/register" className="btn btn-outline">Register</Link> </>)}
-</div>
-<div className="cart-icon-container">
-<button id="cartIconButton" className="cart-icon-button" aria-label="View Cart" onClick={onCartClick}> 🛒 {cartItemCount > 0 && <span id="cartItemCountBadge" className="cart-item-count-badge">{cartItemCount}</span>} </button>
-</div>
-</nav>
-</header>
-);
+    const [isNavActive, setIsNavActive] = useState(false);
+    const { isAuthenticated, user, logout } = useAuth();
+    const { cartItemCount } = useCart();
+    return (
+        <header className="main-header index-header">
+            <Link to="/" className="logo logo-glow">Realm Maid 🎀</Link>
+            <button id="menuToggleBtn" className="menu-toggle-btn" aria-label="Toggle Menu" onClick={() => setIsNavActive(!isNavActive)}>
+                <span></span><span></span><span></span>
+            </button>
+            <nav id="mainNav" className={`main-nav ${isNavActive ? 'active' : ''}`}>
+                <div id="authButtonsContainer" className="auth-buttons-container">
+                    {isAuthenticated ? (<> <Link to={user.isAdmin ? "/admin" : "/dashboard"} className="btn">My Account</Link> <button onClick={logout} className="btn btn-outline">Logout</button> </>) : (<> <Link to="/login" className="btn">Log In</Link> <Link to="/register" className="btn btn-outline">Register</Link> </>)}
+                </div>
+                <div className="cart-icon-container">
+                    <button id="cartIconButton" className="cart-icon-button" aria-label="View Cart" onClick={onCartClick}> 🛒 {cartItemCount > 0 && <span id="cartItemCountBadge" className="cart-item-count-badge">{cartItemCount}</span>} </button>
+                </div>
+            </nav>
+        </header>
+    );
 }
 
 const ShoppingCart = ({ isOpen, onClose }) => {
-const { cartItems, updateQuantity, removeFromCart } = useCart();
-const navigate = useNavigate();
-const subtotal = cartItems.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
-const handleCheckout = () => { onClose(); navigate('/checkout'); };
-return (
-<div className={`modal-backdrop ${isOpen ? 'active' : ''}`} id="shoppingCartModalBackdrop" onClick={onClose}>
-<div className="cart-modal" id="shoppingCartModal" onClick={(e) => e.stopPropagation()}>
-                {/* ... all your shopping cart JSX ... */}
+    const { cartItems, updateQuantity, removeFromCart } = useCart();
+    const navigate = useNavigate();
+    const subtotal = cartItems.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+    const handleCheckout = () => { onClose(); navigate('/checkout'); };
+    return (
+        <div className={`modal-backdrop ${isOpen ? 'active' : ''}`} id="shoppingCartModalBackdrop" onClick={onClose}>
+            <div className="cart-modal" id="shoppingCartModal" onClick={(e) => e.stopPropagation()}>
                 <div className="cart-modal-header"> <h2 className="gradient-text">Your Bag of Holding 🛍️</h2> <button className="cart-modal-close-btn modal-close" aria-label="Close cart" onClick={onClose}>×</button> </div>
                 <div className="cart-modal-body"> <div id="cartItemsListDiv" className="cart-items-list"> {cartItems.length > 0 ? cartItems.map(item => ( <div key={item.id} className="cart-item-card"> <img src={item.imageUrl || 'https://placehold.co/80x80/320d42/ffffff?text=Item'} alt={item.name} /> <div className="cart-item-details"> <div className="cart-item-header"><h4 className="text-primary">{item.name}</h4><button className="cart-item-remove" onClick={() => removeFromCart(item.id)}>×</button></div> <p className="text-secondary text-sm">Price: ${parseFloat(item.price).toFixed(2)}</p> <div className="cart-item-actions"> <div className="quantity-controls"> <button className="btn btn-sm btn-outline cart-quantity-decrease" onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button> <input type="number" value={item.quantity} className="selectable cart-item-quantity-input" onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)} /> <button className="btn btn-sm btn-outline cart-quantity-increase" onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button> </div> <span className="cart-item-total-value text-primary">${(item.price * item.quantity).toFixed(2)}</span> </div> </div> </div> )) : (<p className="text-secondary text-center p-lg">Your cart is currently empty.</p>)} </div> </div>
                 <div className="cart-modal-footer"> <div className="cart-summary card card-glass"> <div className="summary-row"><span>Subtotal</span><span id="cartSubtotal">${subtotal.toFixed(2)}</span></div> <div className="summary-row total-row"><span className="font-bold">Total</span><span className="gradient-text font-bold" id="cartTotal">${subtotal.toFixed(2)}</span></div> <button id="proceedToCheckoutBtn" className="btn btn-primary-action btn-block" onClick={handleCheckout} disabled={cartItems.length === 0}>Let's Checkout, Hun! 💖</button> </div> </div>
-</div>
-</div>
-);
+            </div>
+        </div>
+    );
 };
 
 const Footer = () => ( <footer className="site-footer"> <p>© 2025 Realm Maid. All rights reserved, gorgeous!</p> </footer> );
 
-
 function MainLayout() {
-const [isCartOpen, setIsCartOpen] = useState(false);
-const { isAuthLoading } = useAuth();
-    const { connectSocket } = useWebSocketActions();
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const { isAuthLoading } = useAuth();
     
-    // This is the new logic to safely render the chat widget!
-    // 1. We create a new piece of state to control when the chat is visible.
-    const [isChatVisible, setChatVisible] = useState(false);
+    // We need to get the isConnected state from our chat store to display it
+    const { isConnected } = useChatStore(state => ({
+        isConnected: state.isConnected,
+    }));
 
-useEffect(() => {
-        // --- THIS IS THE FINAL FIX! ---
-        // We add a simple check to make sure connectSocket is actually a function before we call it.
-        if (!isAuthLoading && typeof connectSocket === 'function') {
-            console.log("Auth is loaded AND connectSocket is a function. Attempting to connect.");
-            connectSocket();
-        // 2. We watch for the authentication to finish.
-        if (!isAuthLoading) {
-            // 3. Once auth is ready, we wait just a tiny moment before showing the chat.
-            //    This gives all other components time to settle down after login.
-            const timer = setTimeout(() => {
-                setChatVisible(true);
-            }, 500); // A tiny 100ms delay is all we need.
+    return (
+        <div className="site-container">
+            <StarryBackground />
+            <FaceliftStyles />
+            <Header onCartClick={() => setIsCartOpen(true)} />
+            <main>
+                <Outlet />
 
-            // Cleanup the timer if the component unmounts
-            return () => clearTimeout(timer);
-}
-    }, [isAuthLoading, connectSocket]);
-    }, [isAuthLoading]); // This effect only runs when the auth state changes.
+                {/* --- Temporary Debug Panel Added Here! --- */}
+                <div style={{
+                    position: 'fixed',
+                    bottom: '10px',
+                    left: '10px',
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    color: 'white',
+                    padding: '15px',
+                    borderRadius: '10px',
+                    zIndex: '9999',
+                    fontFamily: 'monospace',
+                    fontSize: '14px'
+                }}>
+                    <h4 style={{marginTop: 0, borderBottom: '1px solid white', paddingBottom: '5px'}}>Debug State</h4>
+                    <p>isAuthLoading: {isAuthLoading ? 'true' : 'false'}</p>
+                    <p>isConnected (from ChatStore): {isConnected ? 'true' : 'false'}</p>
+                </div>
 
-return (
-<div className="site-container">
-<StarryBackground />
-<FaceliftStyles />
-<Header onCartClick={() => setIsCartOpen(true)} />
-<main>
-<Outlet />
-</main>
-<Footer />
-<ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
-            {!isAuthLoading && <ChatWidget />}
-            {/* 4. We use our new state to render the ChatWidget. */}
-            {/* It will now only appear AFTER auth is done AND our small delay has passed. */}
-            {isChatVisible && <ChatWidget />}
-</div>
-);
+            </main>
+            <Footer />
+            <ShoppingCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+            
+            {/* We keep the ChatWidget removed for this test */}
+        </div>
+    );
 }
 
 export default MainLayout;
