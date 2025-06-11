@@ -25,21 +25,20 @@ export const WebSocketProvider = ({ children }) => {
     const socketRef = useRef(null);
     const { user } = useAuth();
 
-    const {
-        setConnected,
-        initializeCustomerSession,
-        addMessage,
-        setPeerTyping,
-        clearPeerTyping,
+    // --- CHANGE ---
+    // Select actions directly from the hook. Zustand guarantees these are stable.
+    const { 
+        setConnected, 
+        initializeCustomerSession, 
+        addMessage, 
+        setPeerTyping, 
+        clearPeerTyping, 
         addOptimisticMessage,
-        revertOptimisticMessage,
-    } = useChatStore.getState();
+        revertOptimisticMessage
+    } = useChatStore(state => state.actions);
 
-    // --- THIS IS THE BIG CHANGE! ---
-    // The connection logic is now wrapped in this function.
-    // It will not run until something calls it.
+
     const connectSocket = useCallback(() => {
-        // If we already have a connection, don't do anything.
         if (socketRef.current?.connected) {
             return;
         }
@@ -54,11 +53,10 @@ export const WebSocketProvider = ({ children }) => {
         
         socketRef.current = socket;
 
-        // --- All event listeners are now set up only when we choose to connect ---
         socket.on('connect', () => setConnected(true));
         socket.on('disconnect', () => {
             setConnected(false);
-            socketRef.current = null; // Clear the ref on disconnect to allow reconnection
+            socketRef.current = null;
         });
         socket.on('customer_session_initialized', (data) => initializeCustomerSession(data));
         socket.on('new_customer_message', (payload) => addMessage(payload.savedMessage));
@@ -73,9 +71,11 @@ export const WebSocketProvider = ({ children }) => {
         socket.on('peer_is_typing', ({ sessionId, userName }) => setPeerTyping(sessionId, userName));
         socket.on('peer_stopped_typing', ({ sessionId }) => clearPeerTyping(sessionId));
 
-    }, [user, queryClient, setConnected, initializeCustomerSession, addMessage, setPeerTyping, clearPeerTyping, revertOptimisticMessage]);
+    // --- CHANGE ---
+    // Now that the actions are stable, this useCallback will only run when the `user` changes.
+    }, [user, queryClient, setConnected, initializeCustomerSession, addMessage, setPeerTyping, clearPeerTyping]);
 
-    // This effect now only handles the cleanup when the user logs in/out
+
     useEffect(() => {
         return () => {
             if (socketRef.current) {
@@ -85,15 +85,12 @@ export const WebSocketProvider = ({ children }) => {
         };
     }, [user]);
 
-    // --- The 'useSendMessageMutation' hook remains the same ---
     const useSendMessageMutation = (event) => {
         return useMutation({
             mutationFn: (variables) => {
                 return new Promise((resolve, reject) => {
                     if (!socketRef.current?.connected) {
-                        // We connect here if needed before sending a message!
                         connectSocket();
-                        // This might take a moment, so we should add a small delay/retry
                         setTimeout(() => {
                            if (!socketRef.current?.connected) {
                                return reject(new Error("Socket still not connected."));
@@ -102,7 +99,7 @@ export const WebSocketProvider = ({ children }) => {
                                 if (response && response.success) resolve(response.data);
                                 else reject(new Error(response?.error || `Failed to send message.`));
                            });
-                        }, 1000); // 1-second delay to allow connection
+                        }, 1000);
                     } else {
                         socketRef.current.emit(event, { ...variables }, (response) => {
                             if (response && response.success) resolve(response.data);
@@ -132,7 +129,6 @@ export const WebSocketProvider = ({ children }) => {
     const sendCustomerMessageMutation = useSendMessageMutation('customer_chat_message');
 
     const actions = useMemo(() => ({
-        // We no longer need to expose connectSocket directly, as mutations handle it
         sendAdminReply: ({ text, sessionId }) => {
             const optimisticMessage = { message_text: text, sender_type: 'admin', admin_user_id: user?.id, session_id: sessionId };
             sendAdminReplyMutation.mutate({ text, sessionId, optimisticMessage });
@@ -147,7 +143,7 @@ export const WebSocketProvider = ({ children }) => {
         emitStopTyping: (sessionId) => {
             if (socketRef.current?.connected) socketRef.current.emit('stop_typing', { sessionId });
         },
-    }), [user, sendAdminReplyMutation, sendCustomerMessageMutation]);
+    }), [user, sendAdminReplyMutation, sendCustomerMessageMutation, connectSocket]); // Added connectSocket here for completeness
 
     return (
         <WebSocketContext.Provider value={actions}>
